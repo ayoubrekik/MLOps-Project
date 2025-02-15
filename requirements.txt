@@ -1,0 +1,13 @@
+pandas
+numpy
+matplotlib
+joblib
+scikit-learn
+statsmodels
+bandit
+flake8
+black
+seaborn
+fastapi
+uvicorn
+Flask
