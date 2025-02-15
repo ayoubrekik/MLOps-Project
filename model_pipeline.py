@@ -206,7 +206,7 @@ def save_model(model):
 
 def load_model():
     # Save the model
-    model_path = ".model_NN.joblib"
+    model_path = "model_NN.joblib"
     try:
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
