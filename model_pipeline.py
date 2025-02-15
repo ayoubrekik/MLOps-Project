@@ -199,14 +199,14 @@ def improve_model(X_train_st, y_train):
 
 def save_model(model):
     # Save the model
-    model_name_save += "model_NN.joblib"
+    model_name_save = "model_NN.joblib"
     dump(model, model_name_save)
     print("Model saved successfully.")
 
 
 def load_model():
     # Save the model
-    model_path += ".model_NN.joblib"
+    model_path = ".model_NN.joblib"
     try:
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
