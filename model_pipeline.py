@@ -199,7 +199,7 @@ def improve_model(X_train_st, y_train):
 
 def save_model(model):
     # Save the model
-    model_name_save += "model_NN.joblib
+    model_name_save += "model_NN.joblib"
     dump(model, model_name_save)
     print("Model saved successfully.")
 
