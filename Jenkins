@@ -37,7 +37,7 @@ pipeline {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Prepare Data' }
             }
             steps {
-                sh '. ${VENV_DIR}/bin/activate && python main.py --prepare'
+                sh './venv/bin/python main.py --prepare'
             }
         }
 
