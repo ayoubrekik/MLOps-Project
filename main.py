@@ -1,6 +1,5 @@
 import argparse
 import pandas as pd
-import numpy as np
 import mlflow
 import mlflow.sklearn
 from sklearn.metrics import precision_score, f1_score, recall_score, accuracy_score
