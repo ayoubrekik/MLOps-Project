@@ -40,15 +40,7 @@ pipeline {
                 sh './venv/bin/python main.py --prepare'
             }
         }
-        stage('Deploy mlflow') {
-            when {
-                expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Deploy mlflow' }
-            }
-            steps {
-                sh '. ${VENV_DIR}/bin/activate && mlflow ui --host 0.0.0.0 --port 5001 &'
-            }
-        }
-        
+
         stage('Train Model') {
             when {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Train Model' }
