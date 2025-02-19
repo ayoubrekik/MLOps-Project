@@ -46,6 +46,7 @@ def main(args):
             print("Training the model...")
             with mlflow.start_run(run_name="Training"):
             	model = train_model(X_train_st, y_train)
+            	mlflow.sklearn.log_model(model, "model")
 
                 
 
@@ -80,6 +81,7 @@ def main(args):
         best_model = improve_model(X_train_st, y_train)
         with mlflow.start_run(run_name="Evaluation"):
             evaluate_model(best_model, X_test_st, y_test)
+            mlflow.sklearn.log_model(best_model, "best_model")
 
     # Save model if requested
     if args.save_model:
