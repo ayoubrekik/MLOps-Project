@@ -17,7 +17,8 @@ from sklearn.metrics import (
     confusion_matrix,
     ConfusionMatrixDisplay,
 )
-
+import mlflow
+import mlflow.sklearn
 from sklearn.neural_network import MLPClassifier
 from joblib import dump, load
 
@@ -147,30 +148,69 @@ def prepare_data():
     y_test.to_csv("y_test.csv", index=False)
 
 
+
 def train_model(X_train_st, y_train):
+    # Initialize the model
     mlp = MLPClassifier()
+    # Fit the model
     mlp.fit(X_train_st, y_train)
+    # Save the model
     save_model(mlp)
+    # Log the default hyperparameters to MLflow
+    mlflow.log_param("hidden_layer_sizes", mlp.get_params()['hidden_layer_sizes'])
+    mlflow.log_param("activation", mlp.get_params()['activation'])
+    mlflow.log_param("solver", mlp.get_params()['solver'])
+    mlflow.log_param("max_iter", mlp.get_params()['max_iter']) 
+    # Log model to MLflow
+    mlflow.sklearn.log_model(mlp, "model")
 
 
 def evaluate_model(model, X_test_st, y_test):
+    # Predict the model's output
     y_pred = model.predict(X_test_st)
-    print_red("Confusion Matrix:")
+    
+    # Generate confusion matrix
     cm_nn = confusion_matrix(y_test, y_pred)
-    print(cm_nn)
+    # Log the default hyperparameters to MLflow
+    mlflow.log_param("hidden_layer_sizes", model.get_params()['hidden_layer_sizes'])
+    mlflow.log_param("activation", model.get_params()['activation'])
+    mlflow.log_param("solver", model.get_params()['solver'])
+    mlflow.log_param("max_iter", model.get_params()['max_iter']) 
+    # Log model to MLflow
+    mlflow.sklearn.log_model(model, "model")
+
+    # Log the confusion matrix as an artifact
+    with open("confusion_matrix.txt", "w") as f:
+        f.write(str(cm_nn))
+    mlflow.log_artifact("confusion_matrix.txt")
+
+    # Log evaluation metrics
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average='binary')  # Adjust `average` if needed
+    recall = recall_score(y_test, y_pred, average='binary')  # Adjust `average` if needed
+    f1 = f1_score(y_test, y_pred, average='binary')  # Adjust `average` if needed
+
+    # Log metrics to MLflow
+    mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("precision", precision)
+    mlflow.log_metric("recall", recall)
+    mlflow.log_metric("f1_score", f1)
+
+    # Output for user with red text
+    print_red("Confusion Matrix:")
+    print(str(cm_nn))
 
     print_red("Accuracy:")
-    print(accuracy_score(y_test, y_pred))
+    print(str(accuracy))
 
     print_red("Precision:")
-    print(precision_score(y_test, y_pred))
+    print(str(precision))
 
     print_red("Recall:")
-    print(recall_score(y_test, y_pred))
+    print(str(recall))
 
     print_red("F1 Score:")
-    print(f1_score(y_test, y_pred))
-
+    print(str(f1))
 
 def improve_model(X_train_st, y_train):
     param_grid = {
@@ -193,7 +233,6 @@ def improve_model(X_train_st, y_train):
     print("Best score found: ", grid_search.best_score_)
 
     best_model = grid_search.best_estimator_
-
     return best_model
 
 
