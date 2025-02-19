@@ -11,3 +11,4 @@ seaborn
 fastapi
 uvicorn
 Flask
+mlflow
