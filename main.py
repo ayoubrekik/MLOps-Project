@@ -15,7 +15,7 @@ from model_pipeline import (
 def main(args):
     X_train_st, X_test_st, y_train, y_test = None, None, None, None
     model = None
-    mlflow.set_tracking_uri("http://localhost:5000")
+    mlflow.set_tracking_uri("http://localhost:5001")
 
     if args.train_model or args.evaluate_model or args.improve_model:
         # Load datasets
