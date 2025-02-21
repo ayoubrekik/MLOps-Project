@@ -57,6 +57,8 @@
                 <div class="collapse navbar-collapse" id="navbarCollapse">
                     <div class="navbar-nav ms-auto">
                         <a href="{{ url_for('home') }}" class="nav-item nav-link">Home</a>
+                        <a href="{{ url_for('hyperparam') }}" class="nav-item nav-link">hyperparam</a>
+
                         <div class="nav-item dropdown">
                             <a href="#" class="nav-link dropdown-toggle active" data-bs-toggle="dropdown">Models</a>
                             <div class="dropdown-menu bg-light mt-2">
@@ -108,6 +110,17 @@
                 <div class="wow fadeIn" data-wow-delay="0.3s">
                     <form id="predictionForm">
                         <div class="row g-3">
+                            <!--  Model -->
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select class="form-select" id="model" name="model" required>
+                                        <option value="model_NN.joblib">Pretrained Model</option>
+                                        <option value="my_model.joblib">Retrained Model</option>
+                                    </select>
+                                    <label for="model">Select Model</label>
+                                </div>
+                            </div>
+                            
                             <!-- International Plan -->
                             <div class="col-md-6">
                                 <div class="form-floating">

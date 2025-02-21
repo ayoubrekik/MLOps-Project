@@ -6,7 +6,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report,accuracy_score, precision_score,recall_score,f1_score
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics import (
     classification_report,
@@ -22,7 +22,7 @@ import mlflow.sklearn
 from sklearn.neural_network import MLPClassifier
 from joblib import dump, load
 
-
+mlflow.set_tracking_uri("http://localhost:5001")
 def print_red(text):
     print(f"\033[91m{text}\033[00m")
 
@@ -235,6 +235,54 @@ def improve_model(X_train_st, y_train):
     best_model = grid_search.best_estimator_
     return best_model
 
+
+def retraine(hidden_layers, activation, solver, alpha, max_iter, random_state):
+    # Load datasets
+    try:
+        x_train = pd.read_csv("X_train.csv").values
+        x_test = pd.read_csv("X_test.csv").values
+        y_train = pd.read_csv("y_train.csv").values
+        y_test = pd.read_csv("y_test.csv").values
+    except Exception as e:
+        print(f"Error loading datasets: {e}")
+        return None  # Exit function if datasets fail to load
+
+    # Initialize and train the model
+    model = MLPClassifier(
+        hidden_layer_sizes=hidden_layers,
+        activation=activation,
+        solver=solver,
+        alpha=alpha,
+        max_iter=max_iter,
+        random_state=random_state,
+        validation_fraction=0.2,
+        verbose=False  # Set to True if you want training logs
+    )
+    model.fit(x_train, y_train)
+    # Evaluate the model
+    y_pred = model.predict(x_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)  
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    # Log metrics to MLflow
+    # Start MLflow logging
+    with mlflow.start_run(run_name="Retraining Model"):
+        mlflow.log_param("hidden_layer_sizes", model.get_params()["hidden_layer_sizes"])
+        mlflow.log_param("activation", model.get_params()["activation"])
+        mlflow.log_param("solver", model.get_params()["solver"])
+        mlflow.log_param("max_iter", model.get_params()["max_iter"])  
+        # Log model to MLflow
+        mlflow.sklearn.log_model(model, "model")
+        mlflow.log_metric("accuracy", accuracy)
+        mlflow.log_metric("precision", precision)
+        mlflow.log_metric("recall", recall)
+        mlflow.log_metric("f1_score", f1)
+    # Save the model
+    dump(model, "my_model.joblib")
+
+    # Return response
+    return accuracy, precision, recall, f1
 
 def save_model(model):
     # Save the model

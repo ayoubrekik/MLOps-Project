@@ -44,9 +44,10 @@ def main(args):
             print("Error: One or more datasets could not be loaded.")
         else:
             print("Training the model...")
-            with mlflow.start_run(run_name="Training"):
+            with mlflow.start_run(run_name="Training"): #as run:
             	model = train_model(X_train_st, y_train)
             	mlflow.sklearn.log_model(model, "model")
+                #run.run
 
                 
 
