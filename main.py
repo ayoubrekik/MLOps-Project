@@ -38,12 +38,15 @@ def main(args):
 
     # Prepare the data when requested
     if args.prepare_data:
-        with mlflow.start_run(run_name="Preparing data"):
+        with mlflow.start_run(
+            run_name="Preparing data", log_system_metrics=True
+        ) as run:
+            run_id = run.info.run_id
             print("Preparing the data...")
             prepare_data()
 
             # Log system metrics
-            log_system_metrics()
+            # log_system_metrics()
 
             # Log requirements.txt
             log_requirements()
@@ -65,11 +68,17 @@ def main(args):
             print("Error: One or more datasets could not be loaded.")
         else:
             print("Training the model...")
-            with mlflow.start_run(run_name="Training model") as run:
+            with mlflow.start_run(
+                run_name="Training model", log_system_metrics=True
+            ) as run:
+                run_id = run.info.run_id
                 train_model(X_train_st, y_train)
-                log_system_metrics()
+                # log_system_metrics()
                 print(run.info)  # Prints metadata about the run
-
+                model_uri = f"runs:/{run_id}/model"
+                model_name = "Churn_Prediction_Model"
+                mlflow.register_model(model_uri, model_name)
+                print(f"Model registered as '{model_name}'.")
                 # run.run
     # Load a saved model
     if args.loaded_model or args.evaluate_model:
@@ -85,8 +94,11 @@ def main(args):
             print("Error: One or more datasets could not be loaded.")
         else:
             print("Evaluating the model...")
-            with mlflow.start_run(run_name="Evaluation"):
-                log_system_metrics()
+            with mlflow.start_run(
+                run_name="Evaluation", log_system_metrics=True
+            ) as run:
+                run_id = run.info.run_id
+                # log_system_metrics()
                 evaluate_model(model, X_test_st, y_test)
 
     # Improve the model
@@ -99,10 +111,16 @@ def main(args):
         print("Improving the model...")
 
         best_model = improve_model(X_train_st, y_train)
-        with mlflow.start_run(run_name="Improving model"):
-            log_system_metrics()
+        with mlflow.start_run(
+            run_name="Improving model", log_system_metrics=True
+        ) as run:
+            run_id = run.info.run_id
+            # log_system_metrics()
             evaluate_model(best_model, X_test_st, y_test)
-
+            model_uri = f"runs:/{run_id}/model"
+            model_name = "Churn_Prediction_Model"
+            mlflow.register_model(model_uri, model_name)
+        print(f"Model registered as '{model_name}'.")
     # Save model if requested
     if args.save_model:
         print("Saving the best improved model...")

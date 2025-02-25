@@ -13,7 +13,7 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_curve,
-    roc_auc_score
+    roc_auc_score,
 )
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics import (
@@ -205,9 +205,7 @@ def evaluate_model(model, X_test_st, y_test):
     mlflow.log_metric("precision", precision)
     mlflow.log_metric("recall", recall)
     mlflow.log_metric("f1_score", f1)
-    
-    
-    
+
     fpr, tpr, _ = roc_curve(y_test, y_pred)
     auc_score = roc_auc_score(y_test, y_pred)
 
@@ -216,17 +214,17 @@ def evaluate_model(model, X_test_st, y_test):
 
     # Plot ROC curve
     plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, label=f"Neural Network (AUC = {auc_score:.2f})", color='blue')
-    plt.plot([0, 1], [0, 1], 'k--', label="Random Classifier")
+    plt.plot(fpr, tpr, label=f"Neural Network (AUC = {auc_score:.2f})", color="blue")
+    plt.plot([0, 1], [0, 1], "k--", label="Random Classifier")
     plt.title("ROC Curve - Neural Network")
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.legend()
-    
+
     # Save and log the ROC curve
     plt.savefig("roc_curve.png")
     mlflow.log_artifact("roc_curve.png")
-    
+
     # Display ROC curve
     plt.show()
     # Output for user with red text
@@ -249,9 +247,9 @@ def evaluate_model(model, X_test_st, y_test):
 def improve_model(X_train_st, y_train):
     param_grid = {
         "hidden_layer_sizes": [(5, 6), (5, 5, 5)],
-        "activation": ["logistic",  "tanh"],
+        "activation": ["logistic", "tanh"],
         "solver": ["adam", "lbfgs"],
-        "max_iter": [ 2000],  # Include a range of iterations.
+        "max_iter": [2000],  # Include a range of iterations.
         "random_state": [42],  # Multiple values for consistency checks.
         "alpha": [0.01, 0.2],  # Expanded range for L2 regularization.
     }
@@ -301,7 +299,8 @@ def retraine(hidden_layers, activation, solver, alpha, max_iter, random_state):
     f1 = f1_score(y_test, y_pred)
     # Log metrics to MLflow
     # Start MLflow logging
-    with mlflow.start_run(run_name="Retraining Model"):
+    with mlflow.start_run(run_name="Retraining Model", log_system_metrics=True) as run:
+        run_id = run.info.run_id
         mlflow.log_param("hidden_layer_sizes", model.get_params()["hidden_layer_sizes"])
         mlflow.log_param("activation", model.get_params()["activation"])
         mlflow.log_param("solver", model.get_params()["solver"])
@@ -312,6 +311,10 @@ def retraine(hidden_layers, activation, solver, alpha, max_iter, random_state):
         mlflow.log_metric("precision", precision)
         mlflow.log_metric("recall", recall)
         mlflow.log_metric("f1_score", f1)
+        model_uri = f"runs:/{run_id}/model"
+        model_name = "Churn_Prediction_Model"
+        mlflow.register_model(model_uri, model_name)
+        print(f"Model registered as '{model_name}'.")
     # Save the model
     dump(model, "my_model.joblib")
 

@@ -13,3 +13,6 @@ uvicorn
 Flask
 mlflow
 psutil
+pynvml
+mypy
+pylint

@@ -192,10 +192,13 @@
         .then(response => response.json()) 
         .then(data => {
             Swal.fire({
-                 title: data.message,
-                 text: `Accuracy: ${data.accuracy}\nPrecision: ${data.precision}\nRecall: ${data.recall}\nF1 Score: ${data.f1_score}`,
-                 icon: 'success',
-                confirmButtonText: 'OK'
+                title: "Model Retrained Successfully!",
+            html: `<b>Accuracy:</b> ${data.accuracy} <br>
+                   <b>Precision:</b> ${data.precision} <br>
+                   <b>Recall:</b> ${data.recall} <br>
+                   <b>F1 Score:</b> ${data.f1_score}`,
+            icon: "success",
+            confirmButtonText: "OK"
         });
 
         })
