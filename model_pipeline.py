@@ -6,7 +6,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import classification_report,accuracy_score, precision_score,recall_score,f1_score
+from sklearn.metrics import (
+    classification_report,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_curve,
+    roc_auc_score
+)
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics import (
     classification_report,
@@ -18,11 +26,14 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay,
 )
 import mlflow
+import psutil
 import mlflow.sklearn
 from sklearn.neural_network import MLPClassifier
 from joblib import dump, load
 
 mlflow.set_tracking_uri("http://localhost:5001")
+
+
 def print_red(text):
     print(f"\033[91m{text}\033[00m")
 
@@ -148,7 +159,6 @@ def prepare_data():
     y_test.to_csv("y_test.csv", index=False)
 
 
-
 def train_model(X_train_st, y_train):
     # Initialize the model
     mlp = MLPClassifier()
@@ -157,10 +167,10 @@ def train_model(X_train_st, y_train):
     # Save the model
     save_model(mlp)
     # Log the default hyperparameters to MLflow
-    mlflow.log_param("hidden_layer_sizes", mlp.get_params()['hidden_layer_sizes'])
-    mlflow.log_param("activation", mlp.get_params()['activation'])
-    mlflow.log_param("solver", mlp.get_params()['solver'])
-    mlflow.log_param("max_iter", mlp.get_params()['max_iter']) 
+    mlflow.log_param("hidden_layer_sizes", mlp.get_params()["hidden_layer_sizes"])
+    mlflow.log_param("activation", mlp.get_params()["activation"])
+    mlflow.log_param("solver", mlp.get_params()["solver"])
+    mlflow.log_param("max_iter", mlp.get_params()["max_iter"])
     # Log model to MLflow
     mlflow.sklearn.log_model(mlp, "model")
 
@@ -168,14 +178,14 @@ def train_model(X_train_st, y_train):
 def evaluate_model(model, X_test_st, y_test):
     # Predict the model's output
     y_pred = model.predict(X_test_st)
-    
+
     # Generate confusion matrix
     cm_nn = confusion_matrix(y_test, y_pred)
     # Log the default hyperparameters to MLflow
-    mlflow.log_param("hidden_layer_sizes", model.get_params()['hidden_layer_sizes'])
-    mlflow.log_param("activation", model.get_params()['activation'])
-    mlflow.log_param("solver", model.get_params()['solver'])
-    mlflow.log_param("max_iter", model.get_params()['max_iter']) 
+    mlflow.log_param("hidden_layer_sizes", model.get_params()["hidden_layer_sizes"])
+    mlflow.log_param("activation", model.get_params()["activation"])
+    mlflow.log_param("solver", model.get_params()["solver"])
+    mlflow.log_param("max_iter", model.get_params()["max_iter"])
     # Log model to MLflow
     mlflow.sklearn.log_model(model, "model")
 
@@ -186,16 +196,39 @@ def evaluate_model(model, X_test_st, y_test):
 
     # Log evaluation metrics
     accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, average='binary')  # Adjust `average` if needed
-    recall = recall_score(y_test, y_pred, average='binary')  # Adjust `average` if needed
-    f1 = f1_score(y_test, y_pred, average='binary')  # Adjust `average` if needed
+    precision = precision_score(y_test, y_pred)  # Adjust `average` if needed
+    recall = recall_score(y_test, y_pred)  # Adjust `average` if needed
+    f1 = f1_score(y_test, y_pred)  # Adjust `average` if needed
 
     # Log metrics to MLflow
     mlflow.log_metric("accuracy", accuracy)
     mlflow.log_metric("precision", precision)
     mlflow.log_metric("recall", recall)
     mlflow.log_metric("f1_score", f1)
+    
+    
+    
+    fpr, tpr, _ = roc_curve(y_test, y_pred)
+    auc_score = roc_auc_score(y_test, y_pred)
 
+    # Log AUC score
+    mlflow.log_metric("AUC", auc_score)
+
+    # Plot ROC curve
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label=f"Neural Network (AUC = {auc_score:.2f})", color='blue')
+    plt.plot([0, 1], [0, 1], 'k--', label="Random Classifier")
+    plt.title("ROC Curve - Neural Network")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.legend()
+    
+    # Save and log the ROC curve
+    plt.savefig("roc_curve.png")
+    mlflow.log_artifact("roc_curve.png")
+    
+    # Display ROC curve
+    plt.show()
     # Output for user with red text
     print_red("Confusion Matrix:")
     print(str(cm_nn))
@@ -212,14 +245,15 @@ def evaluate_model(model, X_test_st, y_test):
     print_red("F1 Score:")
     print(str(f1))
 
+
 def improve_model(X_train_st, y_train):
     param_grid = {
-        "hidden_layer_sizes": [(5, 5), (5, 6), (5, 5, 5)],
-        "activation": ["logistic", "relu", "tanh"],
-        "solver": ["adam", "sgd", "lbfgs"],
-        "max_iter": [1000, 2000],  # Include a range of iterations.
+        "hidden_layer_sizes": [(5, 6), (5, 5, 5)],
+        "activation": ["logistic",  "tanh"],
+        "solver": ["adam", "lbfgs"],
+        "max_iter": [ 2000],  # Include a range of iterations.
         "random_state": [42],  # Multiple values for consistency checks.
-        "alpha": [0.0001, 0.001, 0.01, 0.2],  # Expanded range for L2 regularization.
+        "alpha": [0.01, 0.2],  # Expanded range for L2 regularization.
     }
     mlp = MLPClassifier(random_state=42)
 
@@ -256,13 +290,13 @@ def retraine(hidden_layers, activation, solver, alpha, max_iter, random_state):
         max_iter=max_iter,
         random_state=random_state,
         validation_fraction=0.2,
-        verbose=False  # Set to True if you want training logs
+        verbose=False,  # Set to True if you want training logs
     )
     model.fit(x_train, y_train)
     # Evaluate the model
     y_pred = model.predict(x_test)
     accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)  
+    precision = precision_score(y_test, y_pred)
     recall = recall_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
     # Log metrics to MLflow
@@ -271,7 +305,7 @@ def retraine(hidden_layers, activation, solver, alpha, max_iter, random_state):
         mlflow.log_param("hidden_layer_sizes", model.get_params()["hidden_layer_sizes"])
         mlflow.log_param("activation", model.get_params()["activation"])
         mlflow.log_param("solver", model.get_params()["solver"])
-        mlflow.log_param("max_iter", model.get_params()["max_iter"])  
+        mlflow.log_param("max_iter", model.get_params()["max_iter"])
         # Log model to MLflow
         mlflow.sklearn.log_model(model, "model")
         mlflow.log_metric("accuracy", accuracy)
@@ -284,6 +318,7 @@ def retraine(hidden_layers, activation, solver, alpha, max_iter, random_state):
     # Return response
     return accuracy, precision, recall, f1
 
+
 def save_model(model):
     # Save the model
     model_name_save = "model_NN.joblib"
@@ -291,9 +326,9 @@ def save_model(model):
     print("Model saved successfully.")
 
 
-def load_model():
+def load_model(deployment):
     # Save the model
-    model_path = "model_NN.joblib"
+    """model_path = "model_NN.joblib"
     try:
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
@@ -305,3 +340,78 @@ def load_model():
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
     return loaded_model
+    """
+    model = None  # Initialize model as None
+    training_runs = None
+    experiment_id = "0"  # Default experiment
+
+    # Step 1: Search for the most recent run
+    runs = mlflow.search_runs(
+        experiment_ids=[experiment_id], order_by=["start_time DESC"]
+    )
+
+    # Step 2: Filter runs based on deployment type
+    if deployment:
+        training_runs = runs[runs["tags.mlflow.runName"] == deployment]
+    else:
+        training_runs = runs[
+            runs["tags.mlflow.runName"].isin(["Training model", "Improving model"])
+        ]
+
+    if not training_runs.empty:
+        # Get the latest run
+        latest_run = training_runs.iloc[0]
+        run_id = latest_run["run_id"]
+        run_name = latest_run["tags.mlflow.runName"]
+        print(f"Found Latest Run ID: {run_id} ({run_name})")
+
+        # List artifacts in the run
+        try:
+            artifacts = mlflow.artifacts.list_artifacts(run_id)
+            print("Artifacts in the run:")
+            for artifact in artifacts:
+                print(f" - {artifact.path}")
+        except Exception as e:
+            print(f"Error listing artifacts: {e}")
+
+        # Load the model
+        model_uri = f"runs:/{run_id}/model"
+        print(f"Model URI: {model_uri}")
+
+        try:
+            model = mlflow.sklearn.load_model(model_uri)
+            if model:
+                print("Model loaded successfully!")
+            else:
+                print("Failed to load the model.")
+        except Exception as e:
+            print(f"Error loading model: {e}")
+    else:
+        print("No matching run found in the default experiment.")
+
+    return model
+
+
+def log_system_metrics():
+    """Logs system metrics like CPU and memory usage to MLflow."""
+    mlflow.log_metric("cpu_usage_percent", psutil.cpu_percent())
+    mlflow.log_metric("memory_usage_percent", psutil.virtual_memory().percent)
+
+
+def log_requirements():
+    """Logs the requirements.txt file to MLflow if it exists."""
+    req_file = "requirements.txt"
+    if os.path.exists(req_file):
+        mlflow.log_artifact(req_file)
+        print("Logged requirements.txt to MLflow.")
+    else:
+        print("No requirements.txt found.")
+
+
+def log_data(data_path):
+    """Logs the dataset to MLflow."""
+    if os.path.exists(data_path):
+        mlflow.log_artifact(data_path)
+        print(f"Logged data: {data_path}")
+    else:
+        print(f"Data file {data_path} not found.")
