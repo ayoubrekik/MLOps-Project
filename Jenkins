@@ -60,7 +60,7 @@ stage('Code Quality Check') {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Prepare Data' }
             }
             steps {
-                sh '. ${VENV_DIR}/bin/activate && python main.py --prepare'
+                sh '. ${VENV_DIR}/bin/activate && python3 main.py --prepare'
             }
         }
 
@@ -69,7 +69,7 @@ stage('Code Quality Check') {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Train Model' }
             }
             steps {
-                sh '. ${VENV_DIR}/bin/activate && python main.py --train'
+                sh '. ${VENV_DIR}/bin/activate && python3 main.py --train'
             }
         }
 
@@ -78,7 +78,7 @@ stage('Code Quality Check') {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Evaluate Model' }
             }
             steps {
-                sh '. ${VENV_DIR}/bin/activate && python main.py --evaluate'
+                sh '. ${VENV_DIR}/bin/activate && python3 main.py --evaluate'
             }
         }
         stage('Improve Model') {
@@ -86,7 +86,7 @@ stage('Code Quality Check') {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Improve Model' }
             }
             steps {
-                sh '. ${VENV_DIR}/bin/activate && python main.py --improve'
+                sh '. ${VENV_DIR}/bin/activate && python3 main.py --improve'
             }
         }
 
@@ -95,7 +95,7 @@ stage('Code Quality Check') {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Deploy API' }
             }
             steps {
-                sh '. ${VENV_DIR}/bin/activate && python app.py'
+                sh '. ${VENV_DIR}/bin/activate && python3 app.py'
             }
         }
     }
