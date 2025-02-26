@@ -13,6 +13,4 @@ uvicorn
 Flask
 mlflow
 psutil
-pynvml
-mypy
-pylint
+pynvml==8.0.1
