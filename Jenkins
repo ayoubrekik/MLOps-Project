@@ -53,6 +53,10 @@ pipeline {
 	    }
 	    steps {
 		sh '''
+		     # Set the PATH to use the local venv only for this stage
+            	export VENV_DIR='/mnt/c/Users/User/OneDrive - ESPRIT/Bureau/4DS/Semester2/MLops/project/venv'
+            	export PATH=${VENV_DIR}/bin:$PATH  # Prepend local venv/bin to PATH
+            
 		    # Find the process using port 5001
 		    PID=$(lsof -t -i :5001 || true)
 		    # If a process is found, kill it
