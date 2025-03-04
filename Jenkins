@@ -12,7 +12,7 @@ pipeline {
         string(name: 'RUN_STAGE', defaultValue: 'ALL', description: 'Enter stage name to run a single stage or ALL to run everything')
     }
 
-    stages {
+     stages {
         stage('Checkout Code') {
             when {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Checkout Code' }
@@ -22,22 +22,16 @@ pipeline {
             }
         }
         
+        
         stage('Set up Environment') {
             when {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Set up Environment' }
             }
             steps {
-                sh '''
-                    # Set the PATH to use the local venv only for this stage
-                    export VENV_DIR='/mnt/c/Users/User/OneDrive - ESPRIT/Bureau/4DS/Semester2/MLops/project/venv'
-                    export PATH=${VENV_DIR}/bin:$PATH  # Prepend local venv/bin to PATH
-                    
-                    python3 -m venv ${VENV_DIR}
-                    . ${VENV_DIR}/bin/activate && pip install -r requirements.txt
-                '''
+                sh 'python3 -m venv ${VENV_DIR}'
+                sh '. ${VENV_DIR}/bin/activate && pip install -r requirements.txt'
             }
-        }
-        
+        }        
         stage('Code Quality Check') {
             when {
                 expression { params.RUN_STAGE == 'ALL' || params.RUN_STAGE == 'Code Quality Check' }
