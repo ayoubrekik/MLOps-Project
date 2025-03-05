@@ -15,6 +15,9 @@ from sklearn.metrics import (
     roc_curve,
     roc_auc_score,
 )
+import json
+from io import BytesIO  
+import base64 
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics import (
     classification_report,
@@ -25,6 +28,8 @@ from sklearn.metrics import (
     confusion_matrix,
     ConfusionMatrixDisplay,
 )
+from datetime import datetime
+from elasticsearch import Elasticsearch
 import mlflow
 import psutil
 import mlflow.sklearn
@@ -32,6 +37,14 @@ from sklearn.neural_network import MLPClassifier
 from joblib import dump, load
 
 mlflow.set_tracking_uri("http://localhost:5001")
+es = Elasticsearch([{"host": "localhost", "port": 9200, "scheme": "http"}])
+
+
+# Check if Elasticsearch is running
+if es.ping():
+    print("Connected to Elasticsearch!")
+else:
+    print("Elasticsearch connection failed!")
 
 
 def print_red(text):
@@ -173,8 +186,16 @@ def train_model(X_train_st, y_train):
     mlflow.log_param("max_iter", mlp.get_params()["max_iter"])
     # Log model to MLflow
     mlflow.sklearn.log_model(mlp, "model")
-
-
+    # Log params to Elasticsearch, excluding the model itself
+    params = {
+        "hidden_layer_sizes": mlp.get_params()["hidden_layer_sizes"],
+        "activation": mlp.get_params()["activation"],
+        "solver": mlp.get_params()["solver"],
+        "max_iter": mlp.get_params()["max_iter"],
+        "timestamp": datetime.utcnow().isoformat()  # Convert datetime to string
+    }
+    es.index(index="mlflow-logs", body=json.dumps({"params": params}))
+    
 def evaluate_model(model, X_test_st, y_test):
     # Predict the model's output
     y_pred = model.predict(X_test_st)
@@ -205,11 +226,12 @@ def evaluate_model(model, X_test_st, y_test):
     mlflow.log_metric("precision", precision)
     mlflow.log_metric("recall", recall)
     mlflow.log_metric("f1_score", f1)
+    # Prepare the log data to send to Elasticsearch
 
     fpr, tpr, _ = roc_curve(y_test, y_pred)
     auc_score = roc_auc_score(y_test, y_pred)
-
     # Log AUC score
+
     mlflow.log_metric("AUC", auc_score)
 
     # Plot ROC curve
@@ -222,11 +244,24 @@ def evaluate_model(model, X_test_st, y_test):
     plt.legend()
 
     # Save and log the ROC curve
-    plt.savefig("roc_curve.png")
     mlflow.log_artifact("roc_curve.png")
 
     # Display ROC curve
     plt.show()
+    params = {
+        "hidden_layer_sizes": model.get_params()["hidden_layer_sizes"],
+        "activation": model.get_params()["activation"],
+        "solver": model.get_params()["solver"],
+        "max_iter": model.get_params()["max_iter"],
+        "timestamp": datetime.utcnow().isoformat(),  # Convert datetime to string
+        "accuracy" :accuracy,
+        "precision" : precision,
+        "recall" : recall,
+        "f1_score" :f1,
+    }
+    es.index(index="mlflow-logs", body=json.dumps({"params": params}))
+    
+
     # Output for user with red text
     print_red("Confusion Matrix:")
     print(str(cm_nn))
@@ -317,7 +352,20 @@ def retraine(hidden_layers, activation, solver, alpha, max_iter, random_state):
         print(f"Model registered as '{model_name}'.")
     # Save the model
     dump(model, "my_model.joblib")
-
+    
+    params = {
+        "hidden_layer_sizes": model.get_params()["hidden_layer_sizes"],
+        "activation": model.get_params()["activation"],
+        "solver": model.get_params()["solver"],
+        "max_iter": model.get_params()["max_iter"],
+        "timestamp": datetime.utcnow().isoformat(),  # Convert datetime to string
+        "accuracy" :accuracy,
+        "precision" : precision,
+        "recall" : recall,
+        "f1_score" :f1,
+    }
+    es.index(index="mlflow-logs", body=json.dumps({"params": params}))
+    
     # Return response
     return accuracy, precision, recall, f1
 
@@ -418,3 +466,24 @@ def log_data(data_path):
         print(f"Logged data: {data_path}")
     else:
         print(f"Data file {data_path} not found.")
+        
+        
+        
+        
+def plot_roc_curve(fpr, tpr, auc_score):
+    # Plot ROC curve
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label=f"Neural Network (AUC = {auc_score:.2f})", color="blue")
+    plt.plot([0, 1], [0, 1], "k--", label="Random Classifier")
+    plt.title("ROC Curve - Neural Network")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.legend()
+
+    # Save the plot to a BytesIO buffer and encode it in base64
+    img_buf = BytesIO()
+    plt.savefig(img_buf, format="png")
+    img_buf.seek(0)
+    img_base64 = base64.b64encode(img_buf.read()).decode("utf-8")
+    
+    return img_base64
